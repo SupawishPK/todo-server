@@ -8,9 +8,11 @@ const User = require("./models/User");
 const Todo = require("./models/Todo");
 const bcrypt = require("bcrypt");
 const requireToken = require("./utils/RequireToken");
+const dotenv = require("dotenv");
+dotenv.config();
 
 mongoose.connect(
-  "mongodb+srv://admin:adminpassword@cluster0.oo4xy.mongodb.net/mern-todo?retryWrites=true&w=majority"
+  `mongodb+srv://admin:${process.env.MONGOOSE_PASSWORD}@cluster0.oo4xy.mongodb.net/${process.env.MONGOOSE_PROJECT}?retryWrites=true&w=majority`
 );
 
 app.use(cors());
@@ -19,7 +21,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.post("/signup", async (req, res) => {
   const hash = await bcrypt.hash(req.body.password, 10);
-  //console.log(hash);
   const newUser = new User({
     username: req.body.username,
     password: hash,
@@ -70,7 +71,6 @@ app.post("/login", (req, res) => {
 
 //get todo route
 app.get("/todos", requireToken, (req, res) => {
-  //console.log(req.userId);
   const userId = req.userId;
   // token is valid
   Todo.find({ author: userId }, (err, todos) => {
@@ -82,8 +82,6 @@ app.get("/todos", requireToken, (req, res) => {
   });
 });
 
-//add todo route
-//mark todo as completed route
 app.post("/todo", requireToken, (req, res) => {
   //logging userId from function requireToken
   const userId = req.userId;
@@ -105,7 +103,6 @@ app.post("/todo", requireToken, (req, res) => {
 
 app.get("/user", requireToken, (req, res) => {
   //logging userId from function requireToken
-  //console.log(req.userId);
   const userId = req.userId;
 
   User.findOne({ _id: userId }, (err, user) => {
@@ -115,6 +112,25 @@ app.get("/user", requireToken, (req, res) => {
       user: {
         username: user.username,
       },
+    });
+  });
+});
+
+app.put("/todo/:todoId", requireToken, (req, res) => {
+  //logging userId from function requireToken
+  const userId = req.userId;
+
+  Todo.findOne({ author: userId, _id: req.params.todoId }, (err, todo) => {
+    if (err) console.log(err);
+
+    todo.isCompleted = true;
+    todo.save((error) => {
+      if (error) console.log(error);
+      //saved
+      return res.status(200).json({
+        title: "success",
+        todo: todo,
+      });
     });
   });
 });
